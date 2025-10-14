@@ -2,7 +2,7 @@
 
 import tkinter as tk
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import LEFT, RIGHT, BOTH, TOP, SUCCESS, INFO, OUTLINE
+from ttkbootstrap.constants import LEFT, RIGHT, BOTH, TOP, PRIMARY, INFO, OUTLINE
 from tkinter import filedialog
 
 from models.config import LISTBOX_WIDTH, LISTBOX_HEIGHT
@@ -21,12 +21,12 @@ class MainWindow:
         """
         self.root = root
         self.file_handler = FileHandler()
-        self.image_viewer = None
-        self.image_files = []
+        self.image_files: list[str] = []
 
-        # UI components
-        self.image_listbox = None
-        self.image_label = None
+        # UI components - will be initialized in _create_widgets
+        self.image_listbox: tk.Listbox
+        self.image_label: ttk.Label
+        self.image_viewer: ImageViewer
 
         self._create_widgets()
 
@@ -44,7 +44,7 @@ class MainWindow:
         self.btn_select_dir = ttk.Button(
             button_frame,
             text="Select Directory",
-            bootstyle=SUCCESS,  # type: ignore
+            bootstyle=PRIMARY,  # type: ignore
             command=self.select_directory,
         )
         self.btn_select_dir.pack(side=LEFT, padx=5)
