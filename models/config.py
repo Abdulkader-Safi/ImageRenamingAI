@@ -3,7 +3,7 @@
 # Window settings
 WINDOW_TITLE = "Image Viewer"
 WINDOW_GEOMETRY = "1000x700"
-THEME_NAME = "flatly"
+THEME_NAME = "superhero"
 
 # Supported image extensions
 IMAGE_EXTENSIONS = (
