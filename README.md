@@ -19,10 +19,12 @@ Instead of `IMG_0001.jpg`, you get `sunset_beach.jpg`. Instead of `DSC_1234.jpg`
 ## ✨ Features
 
 - **AI-Powered Analysis**: Uses local Ollama vision models for privacy and speed
+- **Dual Rename Modes**:
+  - Batch rename entire directories at once
+  - Selective rename for individual images
 - **Real-Time Preview**: See AI-generated names as they're created
 - **Immediate Updates**: Listbox updates after each rename, not at the end
 - **Modern UI**: Built with ttkbootstrap for a sleek, themed interface
-- **Batch Processing**: Rename entire directories at once
 - **Smart Naming**: Generates concise, filesystem-friendly names
 - **Collision Handling**: Automatically handles duplicate names
 - **Progress Tracking**: Visual feedback during processing
@@ -150,23 +152,42 @@ python main.py
    - Choose a folder containing images
    - Images will appear in the left listbox
 
-4. **Start AI renaming**
+4. **Choose your renaming mode**
+
+   **Option A: Batch Rename All Images**
 
    - Click **"AI Rename Images"**
+   - Processes all images in the directory sequentially
    - Watch the magic happen! 🎉
+
+   **Option B: Rename Selected Image Only**
+
+   - Click on any image in the listbox to select it
+   - Click **"AI Rename Selected"**
+   - Only the selected image will be processed
+   - Perfect for fine-tuning individual files
 
 5. **Observe the process**
 
-   - 🖼️ Each image is selected and displayed
+   - 🖼️ Image is selected and displayed
    - ⏳ Preview box shows "Analyzing..."
    - ✓ AI-generated name appears in green
    - 📝 Filename updates in the listbox immediately
-   - 🔄 Moves to the next image automatically
+   - 🔄 For batch mode, moves to the next image automatically
 
 6. **Check results**
-   - All images are renamed with descriptive names
+   - Images are renamed with descriptive names
    - Original extensions are preserved
    - Completion summary shows success/failure count
+
+### Renaming Modes Explained
+
+The application provides two flexible ways to rename your images:
+
+| Button                 | Description                                 | Use Case                                 |
+| ---------------------- | ------------------------------------------- | ---------------------------------------- |
+| **AI Rename Images**   | Processes all images in the directory       | Organizing a new photo collection        |
+| **AI Rename Selected** | Processes only the currently selected image | Fine-tuning specific files or testing AI |
 
 ### Example Transformation
 
@@ -177,7 +198,7 @@ python main.py
 - DSC_1234.jpg
 - Screenshot_20231015.png
 
-**After:**
+**After (using either button):**
 
 - sunset_beach.jpg
 - golden_retriever_playing.jpg
