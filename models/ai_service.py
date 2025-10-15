@@ -72,6 +72,25 @@ class OllamaService:
             # Extract and clean the title
             title = response["message"]["content"].strip()
 
+            # Detect if model doesn't support vision (common error responses)
+            error_indicators = [
+                "sorry",
+                "can't",
+                "cannot",
+                "unable",
+                "don't have",
+                "no image",
+                "as an ai",
+                "language model",
+            ]
+            title_lower = title.lower()
+            if any(indicator in title_lower for indicator in error_indicators):
+                raise Exception(
+                    f"Model '{self.model_name}' appears to not support vision. "
+                    f"Response: {title[:100]}... "
+                    f"Please use a vision-capable model like llama3.2-vision, llava, etc."
+                )
+
             # Remove quotes if present
             title = title.strip("'\"")
 
@@ -112,13 +131,44 @@ class OllamaService:
 
     @staticmethod
     def get_available_models():
-        """Get list of available Ollama models installed locally.
+        """Get list of available vision-capable Ollama models installed locally.
+
+        Only returns models that support image analysis (multimodal models).
+        Text-only models like standard mistral, llama2, llama3.2 are filtered out.
 
         Returns:
-            list[str]: List of model names, or empty list if Ollama is unavailable
+            list[str]: List of vision-capable model names, or empty list if none available
         """
+        # Known vision-capable model identifiers
+        VISION_MODELS = [
+            "llama3.2-vision",
+            "llama4",  # Llama 4 models are multimodal
+            "llava",
+            "bakllava",
+            "qwen2-vl",
+            "qwen-vl",
+            "mistral-small",  # Mistral Small 3.1 has vision
+            "pixtral",  # Mistral's vision model
+            "moondream",
+            "cogvlm",
+        ]
+
         try:
-            models = ollama.list()
-            return [m.model for m in models.models]
+            all_models = ollama.list()
+            if not all_models or not all_models.models:
+                return []
+
+            model_names = [m.model for m in all_models.models]
+
+            # Filter to only vision-capable models
+            vision_models = []
+            for model in model_names:
+                if model is not None:
+                    model_lower = model.lower()
+                    # Check if model name contains any vision model identifier
+                    if any(vision_id in model_lower for vision_id in VISION_MODELS):
+                        vision_models.append(model)
+
+            return vision_models
         except Exception:
             return []

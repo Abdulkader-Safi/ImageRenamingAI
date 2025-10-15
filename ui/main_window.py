@@ -82,14 +82,14 @@ class MainWindow:
         )
         self.model_combo.pack(side=LEFT, padx=5)
 
-        # Load available models
-        self._load_available_models()
-
-        # Status label
+        # Status label (create before loading models so it can be updated)
         self.status_label = ttk.Label(
             button_frame, text="Ready", font=("Helvetica", 10)
         )
         self.status_label.pack(side=LEFT, padx=20)
+
+        # Load available models (this will update status_label)
+        self._load_available_models()
 
     def _create_content_frame(self):
         """Create the main content frame with image list and preview."""
@@ -151,7 +151,7 @@ class MainWindow:
         self.image_viewer = ImageViewer(self.image_label)
 
     def _load_available_models(self):
-        """Load available Ollama models into the dropdown."""
+        """Load available vision-capable Ollama models into the dropdown."""
         models = OllamaService.get_available_models()
 
         if models:
@@ -161,11 +161,15 @@ class MainWindow:
                 self.model_combo.set(DEFAULT_OLLAMA_MODEL)
             else:
                 self.model_combo.current(0)
+            self.status_label.config(text=f"Found {len(models)} vision model(s)")
         else:
-            self.model_combo["values"] = [DEFAULT_OLLAMA_MODEL]
-            self.model_combo.set(DEFAULT_OLLAMA_MODEL)
+            # No vision models found - provide helpful guidance
+            self.model_combo["values"] = ["No vision models installed"]
+            self.model_combo.current(0)
+            self.model_combo.config(state="disabled")
+            self.btn_ai_rename.config(state="disabled")
             self.status_label.config(
-                text="Warning: Could not load models from Ollama"
+                text="⚠ No vision models! Install: ollama pull llama3.2-vision"
             )
 
     def select_directory(self):

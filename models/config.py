@@ -23,5 +23,5 @@ IMAGE_DISPLAY_PADDING = 0.95  # 95% to add some padding
 DEFAULT_DISPLAY_SIZE = 600
 
 # AI settings
-DEFAULT_OLLAMA_MODEL = "mistral:latest"  # Fallback if model list fails to load
+DEFAULT_OLLAMA_MODEL = "lava"  # Fallback vision model
 MAX_TITLE_LENGTH = 30
