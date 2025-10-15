@@ -1,7 +1,6 @@
 """AI service for image analysis using Ollama."""
 
 import base64
-from pathlib import Path
 import ollama
 from ollama import chat
 
