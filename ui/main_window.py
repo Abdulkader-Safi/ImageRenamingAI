@@ -79,9 +79,12 @@ class MainWindow:
         )
         self.btn_ai_rename.pack(side=LEFT, padx=5)
 
-        # Button 3: Placeholder
+        # Button 3: AI Rename Selected Image
         self.btn3 = ttk.Button(
-            button_frame, text="Button 3", bootstyle=(INFO, OUTLINE)  # type: ignore
+            button_frame,
+            text="AI Rename Selected",
+            bootstyle=(INFO, OUTLINE),  # type: ignore
+            command=self.start_ai_rename_selected,
         )
         self.btn3.pack(side=LEFT, padx=5)
 
@@ -286,6 +289,45 @@ class MainWindow:
         )
         thread.start()
 
+    def start_ai_rename_selected(self):
+        """Start the AI-powered renaming process for the selected image only."""
+        if self.is_processing:
+            return
+
+        if not self.image_files:
+            self.status_label.config(text="No images loaded!")
+            return
+
+        # Check if an image is selected
+        selection = self.image_listbox.curselection()
+        if not selection:
+            self.status_label.config(text="Please select an image first!")
+            return
+
+        # Get selected model
+        selected_model = self.model_combo.get()
+        if not selected_model:
+            self.status_label.config(text="Please select a model!")
+            return
+
+        # Disable buttons and dropdown during processing
+        self.is_processing = True
+        self.btn_ai_rename.config(state="disabled")
+        self.btn3.config(state="disabled")
+        self.btn_select_dir.config(state="disabled")
+        self.model_combo.config(state="disabled")
+
+        # Get selected index
+        selected_index = selection[0]
+
+        # Start processing in a separate thread to keep UI responsive
+        thread = threading.Thread(
+            target=self._process_single_image,
+            args=(selected_model, selected_index),
+            daemon=True,
+        )
+        thread.start()
+
     def _process_images(self, model_name):
         """Process all images with AI (runs in separate thread).
 
@@ -362,6 +404,89 @@ class MainWindow:
 
         # Reload the image list to show new names
         self.root.after(0, self._finalize_rename, renamed_count, failed_count)
+
+    def _process_single_image(self, model_name, image_index):
+        """Process a single selected image with AI (runs in separate thread).
+
+        Args:
+            model_name: The Ollama model to use for processing
+            image_index: The index of the image to process
+        """
+        # Create AI service with selected model
+        ai_service = OllamaService(model_name, MAX_TITLE_LENGTH)
+
+        try:
+            filename = self.image_files[image_index]
+
+            # Update status
+            self.root.after(
+                0,
+                lambda: self.status_label.config(text="Processing selected image..."),
+            )
+
+            # Show "Analyzing..." in preview box
+            self.root.after(
+                0,
+                lambda: self._update_name_preview(
+                    f"Analyzing: {filename}\n⏳ Generating name..."
+                ),
+            )
+
+            # Get full filepath
+            filepath = self.file_handler.get_file_path(filename)
+
+            # Generate title using AI
+            new_title = ai_service.generate_title(filepath)
+
+            # Show generated name in preview box
+            self.root.after(
+                0,
+                lambda: self._update_name_preview(f"✓ Generated: {new_title}"),
+            )
+
+            # Rename the file
+            new_filename = self.file_handler.rename_image(filename, new_title)
+
+            # Update the image_files list
+            self.image_files[image_index] = new_filename
+
+            # Update the listbox immediately with the new name
+            self.root.after(
+                0,
+                lambda: self._update_listbox_item(image_index, new_filename),
+            )
+
+            # Update status with success message
+            self.root.after(
+                0,
+                lambda: self.status_label.config(
+                    text=f"Successfully renamed to: {new_title}"
+                ),
+            )
+
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Error processing image: {error_msg}")
+            self.root.after(
+                0,
+                lambda: self._update_name_preview(f"❌ Error: {error_msg}"),
+            )
+            self.root.after(
+                0,
+                lambda: self.status_label.config(text=f"Error: {error_msg}"),
+            )
+
+        finally:
+            # Re-enable buttons and dropdown
+            self.root.after(0, self._finalize_single_rename)
+
+    def _finalize_single_rename(self):
+        """Re-enable UI controls after processing a single image."""
+        self.btn_ai_rename.config(state="normal")
+        self.btn3.config(state="normal")
+        self.btn_select_dir.config(state="normal")
+        self.model_combo.config(state="readonly")
+        self.is_processing = False
 
     def _select_image(self, index):
         """Select an image in the listbox programmatically.
