@@ -2,6 +2,7 @@
 
 import base64
 from pathlib import Path
+import ollama
 from ollama import chat
 
 
@@ -108,3 +109,16 @@ class OllamaService:
             return response is not None
         except Exception:
             return False
+
+    @staticmethod
+    def get_available_models():
+        """Get list of available Ollama models installed locally.
+
+        Returns:
+            list[str]: List of model names, or empty list if Ollama is unavailable
+        """
+        try:
+            models = ollama.list()
+            return [m.model for m in models.models]
+        except Exception:
+            return []

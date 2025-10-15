@@ -6,7 +6,7 @@ from ttkbootstrap.constants import LEFT, RIGHT, BOTH, TOP, PRIMARY, INFO, OUTLIN
 from tkinter import filedialog
 import threading
 
-from models.config import LISTBOX_WIDTH, LISTBOX_HEIGHT, OLLAMA_MODEL_NAME, MAX_TITLE_LENGTH
+from models.config import LISTBOX_WIDTH, LISTBOX_HEIGHT, DEFAULT_OLLAMA_MODEL, MAX_TITLE_LENGTH
 from ui.image_viewer import ImageViewer
 from utils.file_handler import FileHandler
 from models.ai_service import OllamaService
@@ -23,7 +23,6 @@ class MainWindow:
         """
         self.root = root
         self.file_handler = FileHandler()
-        self.ai_service = OllamaService(OLLAMA_MODEL_NAME, MAX_TITLE_LENGTH)
         self.image_files: list[str] = []
         self.is_processing = False
 
@@ -33,6 +32,7 @@ class MainWindow:
         self.image_viewer: ImageViewer
         self.status_label: ttk.Label
         self.btn_ai_rename: ttk.Button
+        self.model_combo: ttk.Combobox
 
         self._create_widgets()
 
@@ -69,6 +69,21 @@ class MainWindow:
             button_frame, text="Button 3", bootstyle=(INFO, OUTLINE)  # type: ignore
         )
         self.btn3.pack(side=LEFT, padx=5)
+
+        # Model selection dropdown
+        ttk.Label(button_frame, text="Model:", font=("Helvetica", 10)).pack(
+            side=LEFT, padx=(20, 5)
+        )
+
+        self.model_combo = ttk.Combobox(
+            button_frame,
+            state="readonly",
+            width=20,
+        )
+        self.model_combo.pack(side=LEFT, padx=5)
+
+        # Load available models
+        self._load_available_models()
 
         # Status label
         self.status_label = ttk.Label(
@@ -135,6 +150,24 @@ class MainWindow:
         # Initialize image viewer
         self.image_viewer = ImageViewer(self.image_label)
 
+    def _load_available_models(self):
+        """Load available Ollama models into the dropdown."""
+        models = OllamaService.get_available_models()
+
+        if models:
+            self.model_combo["values"] = models
+            # Try to select the default model, or first available
+            if DEFAULT_OLLAMA_MODEL in models:
+                self.model_combo.set(DEFAULT_OLLAMA_MODEL)
+            else:
+                self.model_combo.current(0)
+        else:
+            self.model_combo["values"] = [DEFAULT_OLLAMA_MODEL]
+            self.model_combo.set(DEFAULT_OLLAMA_MODEL)
+            self.status_label.config(
+                text="Warning: Could not load models from Ollama"
+            )
+
     def select_directory(self):
         """Open dialog to select directory and load images."""
         directory = filedialog.askdirectory(title="Select Image Directory")
@@ -193,17 +226,33 @@ class MainWindow:
             self.status_label.config(text="No images loaded!")
             return
 
-        # Disable buttons during processing
+        # Get selected model
+        selected_model = self.model_combo.get()
+        if not selected_model:
+            self.status_label.config(text="Please select a model!")
+            return
+
+        # Disable buttons and dropdown during processing
         self.is_processing = True
         self.btn_ai_rename.config(state="disabled")
         self.btn_select_dir.config(state="disabled")
+        self.model_combo.config(state="disabled")
 
         # Start processing in a separate thread to keep UI responsive
-        thread = threading.Thread(target=self._process_images, daemon=True)
+        thread = threading.Thread(
+            target=self._process_images, args=(selected_model,), daemon=True
+        )
         thread.start()
 
-    def _process_images(self):
-        """Process all images with AI (runs in separate thread)."""
+    def _process_images(self, model_name):
+        """Process all images with AI (runs in separate thread).
+
+        Args:
+            model_name: The Ollama model to use for processing
+        """
+        # Create AI service with selected model
+        ai_service = OllamaService(model_name, MAX_TITLE_LENGTH)
+
         total_images = len(self.image_files)
         renamed_count = 0
         failed_count = 0
@@ -225,7 +274,7 @@ class MainWindow:
                 filepath = self.file_handler.get_file_path(filename)
 
                 # Generate title using AI
-                new_title = self.ai_service.generate_title(filepath)
+                new_title = ai_service.generate_title(filepath)
 
                 # Rename the file
                 new_filename = self.file_handler.rename_image(filename, new_title)
@@ -278,7 +327,8 @@ class MainWindow:
             status_text += f", Failed: {failed_count}"
         self.status_label.config(text=status_text)
 
-        # Re-enable buttons
+        # Re-enable buttons and dropdown
         self.btn_ai_rename.config(state="normal")
         self.btn_select_dir.config(state="normal")
+        self.model_combo.config(state="readonly")
         self.is_processing = False
