@@ -87,7 +87,6 @@ class FileHandler:
 
         # Handle filename collisions
         counter = 1
-        base_new_filename = new_filename
         while os.path.exists(os.path.join(self.directory, new_filename)):
             new_filename = f"{new_title}_{counter}{ext}"
             counter += 1
