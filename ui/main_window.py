@@ -2,11 +2,25 @@
 
 import tkinter as tk
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import LEFT, RIGHT, BOTH, TOP, PRIMARY, INFO, OUTLINE, SUCCESS
+from ttkbootstrap.constants import (
+    LEFT,
+    RIGHT,
+    BOTH,
+    TOP,
+    PRIMARY,
+    INFO,
+    OUTLINE,
+    SUCCESS,
+)
 from tkinter import filedialog
 import threading
 
-from models.config import LISTBOX_WIDTH, LISTBOX_HEIGHT, DEFAULT_OLLAMA_MODEL, MAX_TITLE_LENGTH
+from models.config import (
+    LISTBOX_WIDTH,
+    LISTBOX_HEIGHT,
+    DEFAULT_OLLAMA_MODEL,
+    MAX_TITLE_LENGTH,
+)
 from ui.image_viewer import ImageViewer
 from utils.file_handler import FileHandler
 from models.ai_service import OllamaService
@@ -33,6 +47,7 @@ class MainWindow:
         self.status_label: ttk.Label
         self.btn_ai_rename: ttk.Button
         self.model_combo: ttk.Combobox
+        self.name_preview_text: tk.Text
 
         self._create_widgets()
 
@@ -140,6 +155,29 @@ class MainWindow:
         ttk.Label(right_frame, text="Preview:", font=("Helvetica", 12, "bold")).pack(
             anchor=tk.W
         )
+
+        # AI-generated name preview box
+        preview_frame = ttk.Frame(right_frame)
+        preview_frame.pack(fill=tk.X, pady=(0, 10))
+
+        ttk.Label(
+            preview_frame, text="AI Generated Name:", font=("Helvetica", 10)
+        ).pack(anchor=tk.W)
+
+        self.name_preview_text = tk.Text(
+            preview_frame,
+            height=2,
+            wrap=tk.WORD,
+            font=("Helvetica", 11, "bold"),
+            bg="#2b2b2b",
+            fg="#00ff00",
+            relief=tk.FLAT,
+            padx=10,
+            pady=8,
+        )
+        self.name_preview_text.pack(fill=tk.X)
+        self.name_preview_text.insert("1.0", "Ready to process images...")
+        self.name_preview_text.config(state=tk.DISABLED)
 
         # Image display label
         self.image_label = ttk.Label(
@@ -274,11 +312,27 @@ class MainWindow:
                 # Select and display the current image
                 self.root.after(0, lambda idx=index - 1: self._select_image(idx))
 
+                # Show "Analyzing..." in preview box
+                self.root.after(
+                    0,
+                    lambda f=filename: self._update_name_preview(
+                        f"Analyzing: {f}\n⏳ Generating name..."
+                    ),
+                )
+
                 # Get full filepath
                 filepath = self.file_handler.get_file_path(filename)
 
                 # Generate title using AI
                 new_title = ai_service.generate_title(filepath)
+
+                # Show generated name in preview box
+                self.root.after(
+                    0,
+                    lambda nt=new_title: self._update_name_preview(
+                        f"✓ Generated: {nt}"
+                    ),
+                )
 
                 # Rename the file
                 new_filename = self.file_handler.rename_image(filename, new_title)
@@ -286,10 +340,23 @@ class MainWindow:
                 # Update the image_files list
                 self.image_files[index - 1] = new_filename
 
+                # Update the listbox immediately with the new name
+                self.root.after(
+                    0,
+                    lambda idx=index - 1, nf=new_filename: self._update_listbox_item(
+                        idx, nf
+                    ),
+                )
+
                 renamed_count += 1
 
             except Exception as e:
-                print(f"Error processing {filename}: {str(e)}")
+                error_msg = str(e)
+                print(f"Error processing {filename}: {error_msg}")
+                self.root.after(
+                    0,
+                    lambda err=error_msg: self._update_name_preview(f"❌ Error: {err}"),
+                )
                 failed_count += 1
                 continue
 
@@ -315,6 +382,30 @@ class MainWindow:
             except Exception as e:
                 print(f"Error displaying image: {str(e)}")
 
+    def _update_name_preview(self, text):
+        """Update the AI-generated name preview text box.
+
+        Args:
+            text: The text to display in the preview box
+        """
+        self.name_preview_text.config(state=tk.NORMAL)
+        self.name_preview_text.delete("1.0", tk.END)
+        self.name_preview_text.insert("1.0", text)
+        self.name_preview_text.config(state=tk.DISABLED)
+
+    def _update_listbox_item(self, index, new_filename):
+        """Update a single item in the listbox with new filename.
+
+        Args:
+            index: The index of the item to update
+            new_filename: The new filename to display
+        """
+        if 0 <= index < self.image_listbox.size():
+            self.image_listbox.delete(index)
+            self.image_listbox.insert(index, new_filename)
+            self.image_listbox.selection_set(index)
+            self.image_listbox.see(index)
+
     def _finalize_rename(self, renamed_count, failed_count):
         """Finalize the rename process and update UI.
 
@@ -322,14 +413,17 @@ class MainWindow:
             renamed_count: Number of successfully renamed images
             failed_count: Number of failed renames
         """
-        # Reload the image list
-        self.load_images()
-
         # Update status
         status_text = f"Complete! Renamed: {renamed_count}"
         if failed_count > 0:
             status_text += f", Failed: {failed_count}"
         self.status_label.config(text=status_text)
+
+        # Update preview box with completion message
+        preview_text = f"✅ Processing Complete!\nRenamed: {renamed_count}"
+        if failed_count > 0:
+            preview_text += f"\nFailed: {failed_count}"
+        self._update_name_preview(preview_text)
 
         # Re-enable buttons and dropdown
         self.btn_ai_rename.config(state="normal")
