@@ -61,3 +61,42 @@ class FileHandler:
             raise ValueError("No directory set")
 
         return os.path.join(self.directory, filename)
+
+    def rename_image(self, old_filename, new_title):
+        """Rename an image file with a new title.
+
+        Args:
+            old_filename: Current filename
+            new_title: New title (without extension)
+
+        Returns:
+            str: The new filename
+
+        Raises:
+            ValueError: If no directory is set
+            OSError: If rename operation fails
+        """
+        if not self.directory:
+            raise ValueError("No directory set")
+
+        # Get the file extension from the old filename
+        _, ext = os.path.splitext(old_filename)
+
+        # Create new filename
+        new_filename = f"{new_title}{ext}"
+
+        # Handle filename collisions
+        counter = 1
+        base_new_filename = new_filename
+        while os.path.exists(os.path.join(self.directory, new_filename)):
+            new_filename = f"{new_title}_{counter}{ext}"
+            counter += 1
+
+        # Get full paths
+        old_path = os.path.join(self.directory, old_filename)
+        new_path = os.path.join(self.directory, new_filename)
+
+        # Rename the file
+        os.rename(old_path, new_path)
+
+        return new_filename
