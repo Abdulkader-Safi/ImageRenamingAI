@@ -33,6 +33,10 @@ Instead of `IMG_0001.jpg`, you get `sunset_beach.jpg`. Instead of `DSC_1234.jpg`
 
 ![image](./assets/screenshot.png)
 
+## Video
+
+<iframe style="width:100%; aspect-ratio: 16 / 9;" src="https://www.youtube.com/embed/wbywHuqtsS8?si=UBV8EXydm6Co5V2d" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 ## Getting Started
 
 ### Prerequisites
